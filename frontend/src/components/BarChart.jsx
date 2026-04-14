@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 const COLORS = {
   default:   "#60a5fa",
@@ -16,7 +16,32 @@ function getColor(i, highlights, sorted) {
   return COLORS.default;
 }
 
-export default function BarChart({ array, highlights, sorted }) {
+function getBarHeight(p, sortBy, maxVal) {
+  if (!p) return 4;
+  const val = p[sortBy];
+  if (val === undefined || val === null) return 4;
+
+  if (typeof val === "number") {
+    return Math.max(4, Math.round((val / (maxVal || 1)) * 265));
+  }
+
+  // For strings: use charCode-based value for visual variety
+  const str = String(val).toLowerCase();
+  const charVal = str.charCodeAt(0) - 96; // a=1, z=26
+  return Math.max(4, Math.round((charVal / 26) * 265));
+}
+
+export default function BarChart({ array, highlights, sorted, sortBy = "id" }) {
+  const maxVal = useMemo(() => {
+    if (!array.length) return 1;
+    const key = sortBy;
+    const first = array[0]?.[key];
+    if (typeof first === "number") {
+      return Math.max(...array.map((p) => p[key] || 0));
+    }
+    return 26; // alphabet
+  }, [array, sortBy]);
+
   return (
     <div style={{
       display: "flex",
@@ -27,11 +52,11 @@ export default function BarChart({ array, highlights, sorted }) {
       overflow: "hidden",
     }}>
       {array.map((p, i) => {
-        const h = Math.max(4, Math.round((p.id / 151) * 265));
+        const h = getBarHeight(p, sortBy, maxVal);
         return (
           <div
             key={i}
-            title={`#${p.id} ${p.name}`}
+            title={`#${p.id} ${p.name} (${sortBy}: ${p[sortBy]})`}
             style={{
               flex: 1,
               minWidth: "3px",

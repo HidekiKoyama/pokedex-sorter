@@ -18,20 +18,57 @@ _load_progress = {"loaded": 0, "total": POKEAPI_TOTAL, "done": False, "error": N
 
 
 def _fetch_single(poke_id: int) -> dict:
-    """Fetch a single Pokémon by ID from PokéAPI."""
+    """Fetch a single Pokémon by ID from PokéAPI (pokemon + species data)."""
     try:
+        # ── Main pokemon data ──
         res = requests.get(f"{POKEAPI_BASE}/{poke_id}", timeout=POKEAPI_TIMEOUT)
         res.raise_for_status()
         data = res.json()
+
         sprite = (
             data["sprites"]["front_default"]
             or data["sprites"]["other"]["official-artwork"]["front_default"]
             or ""
         )
+
+        # Types
+        types = [t["type"]["name"] for t in data.get("types", [])]
+        type_primary = types[0] if types else "unknown"
+        type_secondary = types[1] if len(types) > 1 else None
+
+        # Base stats
+        stats_map = {}
+        for s in data.get("stats", []):
+            stats_map[s["stat"]["name"]] = s["base_stat"]
+        base_stats_total = sum(stats_map.values())
+
+        # ── Species data (for habitat) ──
+        habitat = "unknown"
+        try:
+            species_url = f"https://pokeapi.co/api/v2/pokemon-species/{poke_id}"
+            species_res = requests.get(species_url, timeout=POKEAPI_TIMEOUT)
+            species_res.raise_for_status()
+            species_data = species_res.json()
+            habitat = (species_data.get("habitat") or {}).get("name", "unknown")
+        except Exception as se:
+            logger.debug(f"Could not fetch species for #{poke_id}: {se}")
+
         return {
             "id": data["id"],
             "name": data["name"],
             "img": sprite,
+            "type_primary": type_primary,
+            "type_secondary": type_secondary,
+            "base_stats_total": base_stats_total,
+            "hp": stats_map.get("hp", 0),
+            "attack": stats_map.get("attack", 0),
+            "defense": stats_map.get("defense", 0),
+            "sp_attack": stats_map.get("special-attack", 0),
+            "sp_defense": stats_map.get("special-defense", 0),
+            "speed": stats_map.get("speed", 0),
+            "height": data.get("height", 0),
+            "weight": data.get("weight", 0),
+            "habitat": habitat,
         }
     except Exception as e:
         logger.warning(
@@ -44,7 +81,13 @@ def _fetch_single(poke_id: int) -> dict:
                 },
             },
         )
-        return {"id": poke_id, "name": f"pokemon-{poke_id}", "img": ""}
+        return {
+            "id": poke_id, "name": f"pokemon-{poke_id}", "img": "",
+            "type_primary": "unknown", "type_secondary": None,
+            "base_stats_total": 0, "hp": 0, "attack": 0, "defense": 0,
+            "sp_attack": 0, "sp_defense": 0, "speed": 0,
+            "height": 0, "weight": 0, "habitat": "unknown",
+        }
 
 
 def _load_all_pokemon():

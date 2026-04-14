@@ -9,7 +9,7 @@ import time
 import psutil
 from flask import Blueprint, jsonify, request, g
 
-from algorithms.sorting import run_algorithm, ALGORITHMS, COMPLEXITIES
+from algorithms.sorting import run_algorithm, ALGORITHMS, COMPLEXITIES, VALID_SORT_KEYS
 from logger import get_logger
 from services.pokemon_service import get_all, is_ready
 
@@ -56,7 +56,8 @@ def sort_with_algorithm(algorithm: str):
 
     Body (JSON, optional):
       {
-        "array": [ {"id": int, "name": str, "img": str}, ... ]
+        "array": [ {"id": int, "name": str, ...} ],
+        "sort_by": "id" | "name" | "type_primary" | "base_stats_total" | "habitat"
       }
     If `array` is omitted, uses the cached Pokémon (shuffled).
     """
@@ -74,6 +75,13 @@ def sort_with_algorithm(algorithm: str):
 
     body = request.get_json(silent=True) or {}
     arr = body.get("array")
+    sort_by = body.get("sort_by", "id")
+
+    if sort_by not in VALID_SORT_KEYS:
+        return jsonify({
+            "error": f"Invalid sort_by '{sort_by}'.",
+            "valid": list(VALID_SORT_KEYS),
+        }), 400
 
     if arr is None:
         if not is_ready():
@@ -93,7 +101,7 @@ def sort_with_algorithm(algorithm: str):
         pre_cpu, pre_mem = _get_process_metrics()
         t_start = time.perf_counter()
 
-        result = run_algorithm(algorithm, arr)
+        result = run_algorithm(algorithm, arr, sort_key=sort_by)
 
         duration_ms = (time.perf_counter() - t_start) * 1000
         post_cpu, post_mem = _get_process_metrics()
@@ -101,7 +109,7 @@ def sort_with_algorithm(algorithm: str):
         stats = result.get("stats", {})
 
         logger.info(
-            f"SORT COMPLETE | {algorithm.upper()} | "
+            f"SORT COMPLETE | {algorithm.upper()} | sort_by={sort_by} | "
             f"{len(arr)} items | "
             f"{stats.get('compares', 0)} compares | "
             f"{stats.get('swaps', 0)} swaps | "
@@ -112,6 +120,7 @@ def sort_with_algorithm(algorithm: str):
                 "data": {
                     "event":       "sort_complete",
                     "algorithm":   algorithm,
+                    "sort_by":     sort_by,
                     "items":       len(arr),
                     "compares":    stats.get("compares", 0),
                     "swaps":       stats.get("swaps", 0),

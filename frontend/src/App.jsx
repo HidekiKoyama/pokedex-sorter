@@ -16,11 +16,20 @@ const ALGO_NAMES = {
   quick:     "⚡ Quick Sort",
 };
 
+const SORT_CRITERIA = {
+  id:               "🔢 Pokédex (#)",
+  name:             "🔤 Alfabético (A-Z)",
+  type_primary:     "🔥 Tipo Primário",
+  base_stats_total: "📊 Base Stats (Total)",
+  habitat:          "🏠 Habitat",
+};
+
 export default function App() {
   const { pokemon, loading: pokeLoading, progress: pokeProgress, error: pokeError, start: startLoad } = usePokemon();
   const sorter = useSort();
 
   const [algorithm,    setAlgorithm]    = useState("bubble");
+  const [sortBy,       setSortBy]       = useState("id");
   const [complexity,   setComplexity]   = useState(null);
   const [view,         setView]         = useState("bars");
   const [speed,        setSpeedState]   = useState(50);
@@ -61,7 +70,7 @@ export default function App() {
     setLoadingSort(true);
     setStatus(`Gerando steps para ${ALGO_NAMES[algorithm]}...`);
     try {
-      const result = await runSort(algorithm, shuffled);
+      const result = await runSort(algorithm, shuffled, sortBy);
       setComplexity(result.complexity);
       sorter.load(shuffled, result.steps, () => {
         setStatus(`✓ Concluído! ${(result.stats.total).toLocaleString()} operações no total.`);
@@ -152,6 +161,20 @@ export default function App() {
               style={selectStyle}
             >
               {Object.entries(ALGO_NAMES).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+          </Section>
+
+          {/* Sort Criterion */}
+          <Section title="Ordenar por">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              disabled={sorter.running}
+              style={selectStyle}
+            >
+              {Object.entries(SORT_CRITERIA).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
             </select>
@@ -253,8 +276,8 @@ export default function App() {
           {sorter.array.length === 0
             ? <EmptyState loading={pokeLoading} onLoad={handleLoad} loaded={pokemon.length > 0} />
             : view === "bars"
-              ? <BarChart  array={sorter.array} highlights={sorter.highlights} sorted={sorter.sorted} />
-              : <CardGrid  array={sorter.array} highlights={sorter.highlights} sorted={sorter.sorted} />
+              ? <BarChart  array={sorter.array} highlights={sorter.highlights} sorted={sorter.sorted} sortBy={sortBy} />
+              : <CardGrid  array={sorter.array} highlights={sorter.highlights} sorted={sorter.sorted} sortBy={sortBy} />
           }
 
         </main>

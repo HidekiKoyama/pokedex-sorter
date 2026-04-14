@@ -27,13 +27,14 @@ export async function getAlgorithms() {
 /**
  * @param {string} algorithm - bubble | selection | insertion | merge | quick
  * @param {Array}  array     - shuffled pokemon array
- * @returns {{ steps, stats, complexity, total_steps }}
+ * @param {string} sortBy    - sort criterion: id | name | type_primary | base_stats_total | habitat
+ * @returns {{ steps, stats, complexity, total_steps, sort_key }}
  */
-export async function runSort(algorithm, array) {
+export async function runSort(algorithm, array, sortBy = "id") {
   const res = await fetch(`${BASE}/sort/${algorithm}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ array }),
+    body: JSON.stringify({ array, sort_by: sortBy }),
   });
   if (!res.ok) {
     const err = await res.json();

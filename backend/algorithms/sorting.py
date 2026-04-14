@@ -1,5 +1,5 @@
 """
-Each algorithm receives a list of dicts {"id": int, "name": str, "img": str}
+Each algorithm receives a list of dicts {"id": int, "name": str, "img": str, ...}
 and returns a list of step dicts consumed by the frontend animator.
 
 Step types:
@@ -13,13 +13,16 @@ Step types:
 from typing import Any
 
 
+VALID_SORT_KEYS = {"id", "name", "type_primary", "base_stats_total", "habitat"}
+
+
 def _item(arr: list, i: int) -> dict:
     return dict(arr[i])
 
 
 # ─────────────────────────── Bubble Sort ───────────────────────────
 
-def bubble_sort(arr: list[dict]) -> list[dict]:
+def bubble_sort(arr: list[dict], sort_key: str = "id") -> list[dict]:
     a = [dict(x) for x in arr]
     n = len(a)
     steps: list[dict] = []
@@ -27,7 +30,7 @@ def bubble_sort(arr: list[dict]) -> list[dict]:
     for i in range(n - 1):
         for j in range(n - i - 1):
             steps.append({"type": "compare", "indices": [j, j + 1]})
-            if a[j]["id"] > a[j + 1]["id"]:
+            if a[j][sort_key] > a[j + 1][sort_key]:
                 steps.append({"type": "swap", "indices": [j, j + 1]})
                 a[j], a[j + 1] = a[j + 1], a[j]
         steps.append({"type": "sorted", "index": n - i - 1})
@@ -38,7 +41,7 @@ def bubble_sort(arr: list[dict]) -> list[dict]:
 
 # ─────────────────────────── Selection Sort ────────────────────────
 
-def selection_sort(arr: list[dict]) -> list[dict]:
+def selection_sort(arr: list[dict], sort_key: str = "id") -> list[dict]:
     a = [dict(x) for x in arr]
     n = len(a)
     steps: list[dict] = []
@@ -47,7 +50,7 @@ def selection_sort(arr: list[dict]) -> list[dict]:
         min_idx = i
         for j in range(i + 1, n):
             steps.append({"type": "compare", "indices": [min_idx, j]})
-            if a[j]["id"] < a[min_idx]["id"]:
+            if a[j][sort_key] < a[min_idx][sort_key]:
                 min_idx = j
         if min_idx != i:
             steps.append({"type": "swap", "indices": [i, min_idx]})
@@ -60,7 +63,7 @@ def selection_sort(arr: list[dict]) -> list[dict]:
 
 # ─────────────────────────── Insertion Sort ────────────────────────
 
-def insertion_sort(arr: list[dict]) -> list[dict]:
+def insertion_sort(arr: list[dict], sort_key: str = "id") -> list[dict]:
     a = [dict(x) for x in arr]
     n = len(a)
     steps: list[dict] = []
@@ -70,7 +73,7 @@ def insertion_sort(arr: list[dict]) -> list[dict]:
         j = i
         while j > 0:
             steps.append({"type": "compare", "indices": [j - 1, j]})
-            if a[j]["id"] < a[j - 1]["id"]:
+            if a[j][sort_key] < a[j - 1][sort_key]:
                 steps.append({"type": "swap", "indices": [j - 1, j]})
                 a[j], a[j - 1] = a[j - 1], a[j]
                 j -= 1
@@ -83,7 +86,7 @@ def insertion_sort(arr: list[dict]) -> list[dict]:
 
 # ─────────────────────────── Merge Sort ────────────────────────────
 
-def merge_sort(arr: list[dict]) -> list[dict]:
+def merge_sort(arr: list[dict], sort_key: str = "id") -> list[dict]:
     a = [dict(x) for x in arr]
     steps: list[dict] = []
 
@@ -101,7 +104,7 @@ def merge_sort(arr: list[dict]) -> list[dict]:
 
         while i < len(left) and j < len(right):
             steps.append({"type": "compare", "indices": [l + i, m + 1 + j]})
-            if left[i]["id"] <= right[j]["id"]:
+            if left[i][sort_key] <= right[j][sort_key]:
                 steps.append({"type": "overwrite", "index": k, "value": dict(left[i])})
                 array[k] = dict(left[i])
                 i += 1
@@ -133,7 +136,7 @@ def merge_sort(arr: list[dict]) -> list[dict]:
 
 # ─────────────────────────── Quick Sort ────────────────────────────
 
-def quick_sort(arr: list[dict]) -> list[dict]:
+def quick_sort(arr: list[dict], sort_key: str = "id") -> list[dict]:
     a = [dict(x) for x in arr]
     steps: list[dict] = []
 
@@ -142,7 +145,7 @@ def quick_sort(arr: list[dict]) -> list[dict]:
         i = low - 1
         for j in range(low, high):
             steps.append({"type": "compare", "indices": [j, high]})
-            if array[j]["id"] <= array[high]["id"]:
+            if array[j][sort_key] <= array[high][sort_key]:
                 i += 1
                 if i != j:
                     steps.append({"type": "swap", "indices": [i, j]})
@@ -187,15 +190,19 @@ COMPLEXITIES = {
 }
 
 
-def run_algorithm(name: str, arr: list[dict]) -> dict[str, Any]:
+def run_algorithm(name: str, arr: list[dict], sort_key: str = "id") -> dict[str, Any]:
     if name not in ALGORITHMS:
         raise ValueError(f"Unknown algorithm: {name!r}. Valid: {list(ALGORITHMS)}")
-    steps = ALGORITHMS[name](arr)
+    if sort_key not in VALID_SORT_KEYS:
+        raise ValueError(f"Unknown sort key: {sort_key!r}. Valid: {VALID_SORT_KEYS}")
+
+    steps = ALGORITHMS[name](arr, sort_key=sort_key)
     compares = sum(1 for s in steps if s["type"] == "compare")
     swaps    = sum(1 for s in steps if s["type"] == "swap")
     writes   = sum(1 for s in steps if s["type"] == "overwrite")
     return {
         "algorithm":   name,
+        "sort_key":    sort_key,
         "complexity":  COMPLEXITIES[name],
         "steps":       steps,
         "total_steps": len(steps),
