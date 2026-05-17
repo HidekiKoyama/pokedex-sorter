@@ -5,6 +5,7 @@ import { runSort, getAlgorithms } from "./services/api";
 import { shuffle } from "./utils/shuffle";
 import BarChart from "./components/BarChart";
 import CardGrid from "./components/CardGrid";
+import DetailsPoke from "./components/DetailsPoke";
 import StatsPanel from "./components/StatsPanel";
 import CompareModal from "./components/CompareModal";
 
@@ -265,13 +266,13 @@ export default function App() {
 
           {/* View toggle */}
           <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-            {["bars", "cards"].map((v) => (
+            {["bars", "cards", "details"].map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 style={{ padding: "6px 16px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.12)", background: view === v ? "#e94560" : "#16213e", color: view === v ? "white" : "#9ca3af", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Nunito',sans-serif" }}
               >
-                {v === "bars" ? "📊 Barras" : "🃏 Cards"}
+                {v === "bars" ? "📊 Barras" : v === "cards" ? "🃏 Cards" : "📝 Detalhes"}
               </button>
             ))}
           </div>
@@ -301,8 +302,11 @@ export default function App() {
             ? <EmptyState loading={pokeLoading} onLoad={handleLoad} loaded={pokemon.length > 0} />
             : view === "bars"
               ? <BarChart  array={sorter.array} highlights={sorter.highlights} sorted={sorter.sorted} sortBy={sortBy} />
-              : <CardGrid  array={sorter.array} highlights={sorter.highlights} sorted={sorter.sorted} sortBy={sortBy} />
-          }
+              : view === "cards"
+                ? <CardGrid  array={sorter.array} highlights={sorter.highlights} sorted={sorter.sorted} sortBy={sortBy} />
+                : <DetailsPoke poke={sorter.array[0]} />
+            }
+          
 
         </main>
       </div>

@@ -18,6 +18,25 @@ export async function getAllPokemon() {
   return res.json();
 }
 
+export async function getPokemonDetails(identifier) {
+  const res = await fetch(`${BASE}/pokemon/${encodeURIComponent(identifier)}`);
+  if (!res.ok) {
+    let err = {};
+    try {
+      err = await res.json();
+    } catch (_) {
+      err = {};
+    }
+
+    if (res.status === 429) {
+      throw new Error(err.detail || "Muitas requisições. Tente novamente em 1 minuto.");
+    }
+
+    throw new Error(err.error || err.detail || "Pokémon não encontrado.");
+  }
+  return res.json();
+}
+
 export async function getAlgorithms() {
   const res = await fetch(`${BASE}/sort/algorithms`);
   if (!res.ok) throw new Error("Failed to fetch algorithms");

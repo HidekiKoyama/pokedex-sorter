@@ -1,4 +1,5 @@
 import React from "react";
+// import { useNavigate } from "react-router-dom";
 
 const TYPE_COLORS = {
   normal:   "#A8A878", fire:     "#F08030", water:    "#6890F0",
@@ -74,6 +75,8 @@ function SortInfo({ p, sortBy }) {
 }
 
 export default function CardGrid({ array, highlights, sorted, sortBy = "id" }) {
+  // const navigate = useNavigate();
+
   return (
     <div style={{
       display: "grid",

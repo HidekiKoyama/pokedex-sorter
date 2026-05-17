@@ -146,6 +146,16 @@ def _load_all_pokemon():
         },
     )
 
+def detail_pokemon(identifier):
+    try:
+        res = requests.get(f"{POKEAPI_BASE}/{identifier}", timeout=POKEAPI_TIMEOUT)
+        res.raise_for_status()
+        data = res.json()
+        return data
+    
+    except requests.RequestException as e:
+        logger.warning(f"Failed to fetch Pokémon details for {identifier}: {e}", extra={"data": {"event": "pokemon_detail_error", "identifier": identifier, "error": str(e)}})
+        return None
 
 def start_loading():
     """Start the background loading thread (if not already running)."""

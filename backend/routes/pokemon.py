@@ -9,6 +9,7 @@ from services.pokemon_service import (
     get_progress,
     get_all,
     is_ready,
+    detail_pokemon,
 )
 
 pokemon_bp = Blueprint("pokemon", __name__)
@@ -30,7 +31,6 @@ def load():
     })
     start_loading()
     return jsonify({"message": "Loading started"}), 202
-
 
 @pokemon_bp.route("/progress", methods=["GET"])
 def progress():
@@ -55,3 +55,19 @@ def list_pokemon():
         "data": {"event": "pokemon_list", "count": len(pokemon)},
     })
     return jsonify(pokemon)
+
+#busca pokemon por id ou nome
+@pokemon_bp.route("/<identifier>", methods=["GET"])
+def get_pokemon(identifier):
+    """Return a single Pokémon by ID or name."""
+    req_id = _get_request_id()
+    
+    pokemon = detail_pokemon(identifier)
+    if pokemon:
+        return jsonify(pokemon)
+
+    logger.debug(f"Pokémon with identifier '{identifier}' not found", extra={
+        "request_id": req_id,
+        "data": {"event": "pokemon_not_found", "identifier": identifier},
+    })
+    return jsonify({"error": f"Pokémon with ID or name '{identifier}' not found."}), 404
