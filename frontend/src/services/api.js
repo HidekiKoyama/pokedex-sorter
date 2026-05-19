@@ -1,46 +1,67 @@
 const BASE = "/api";
 
+/**
+ * Erro customizado para rate-limit com tempo de espera
+ */
+export class RateLimitError extends Error {
+  constructor(message, retryAfter = null) {
+    super(message);
+    this.name = "RateLimitError";
+    this.retryAfter = retryAfter;
+    this.isRateLimit = true;
+  }
+}
+
+/**
+ * Trata erros HTTP, especialmente rate-limit (429)
+ */
+async function handleResponse(res, endpoint = "") {
+  if (res.ok) {
+    return res.json();
+  }
+
+  let err = {};
+  try {
+    err = await res.json();
+  } catch (_) {
+    err = {};
+  }
+
+  // Tratamento específico para rate-limit (429)
+  if (res.status === 429) {
+    const message = err.detail || "Limite de requisições excedido. Tente novamente em breve.";
+    const retryAfter = err.retry_after || null;
+    throw new RateLimitError(message, retryAfter);
+  }
+
+  // Erros genéricos
+  const errorMsg = err.error || err.detail || `Erro na requisição para ${endpoint}`;
+  throw new Error(errorMsg);
+}
+
 export async function loadPokemon() {
   const res = await fetch(`${BASE}/pokemon/load`, { method: "POST" });
-  if (!res.ok) throw new Error("Failed to trigger load");
-  return res.json();
+  return handleResponse(res, "pokemon/load");
 }
 
 export async function getPokemonProgress() {
   const res = await fetch(`${BASE}/pokemon/progress`);
-  if (!res.ok) throw new Error("Failed to fetch progress");
-  return res.json();
+  return handleResponse(res, "pokemon/progress");
 }
 
 export async function getAllPokemon() {
   const res = await fetch(`${BASE}/pokemon/`);
-  if (!res.ok) throw new Error("Pokémon not loaded yet");
-  return res.json();
+  return handleResponse(res, "pokemon");
 }
 
 export async function getPokemonDetails(identifier) {
   const res = await fetch(`${BASE}/pokemon/${encodeURIComponent(identifier)}`);
-  if (!res.ok) {
-    let err = {};
-    try {
-      err = await res.json();
-    } catch (_) {
-      err = {};
-    }
-
-    if (res.status === 429) {
-      throw new Error(err.detail || "Muitas requisições. Tente novamente em 1 minuto.");
-    }
-
-    throw new Error(err.error || err.detail || "Pokémon não encontrado.");
-  }
-  return res.json();
+  return handleResponse(res, `pokemon/${identifier}`);
 }
 
 export async function getAlgorithms() {
   const res = await fetch(`${BASE}/sort/algorithms`);
-  if (!res.ok) throw new Error("Failed to fetch algorithms");
-  return res.json();
+  return handleResponse(res, "sort/algorithms");
 }
 
 /**
@@ -55,11 +76,7 @@ export async function runSort(algorithm, array, sortBy = "id") {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ array, sort_by: sortBy }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Sort failed");
-  }
-  return res.json();
+  return handleResponse(res, `sort/${algorithm}`);
 }
 
 export async function compareAlgorithms(array) {
@@ -68,6 +85,5 @@ export async function compareAlgorithms(array) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ array }),
   });
-  if (!res.ok) throw new Error("Compare failed");
-  return res.json();
+  return handleResponse(res, "sort/compare");
 }

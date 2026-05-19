@@ -82,7 +82,7 @@ export default function CardGrid({ array, highlights, sorted, sortBy = "id" }) {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
       gap: "4px",
-      maxHeight: "420px",
+      maxHeight: "60vh",
       overflowY: "auto",
     }}>
       {array.map((p, i) => {

@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { usePokemon } from "./hooks/usePokemon";
 import { useSort } from "./hooks/useSort";
-import { runSort, getAlgorithms } from "./services/api";
+import { runSort, getAlgorithms, RateLimitError } from "./services/api";
 import { shuffle } from "./utils/shuffle";
 import BarChart from "./components/BarChart";
 import CardGrid from "./components/CardGrid";
@@ -41,6 +41,10 @@ export default function App() {
   const [loadingSort,  setLoadingSort]  = useState(false);
   const [showCompare,  setShowCompare]  = useState(false);
 
+  // ─── Rate Limiting ──────────────────────────────────────────────
+  const [rateLimitError, setRateLimitError] = useState(null);
+  const [retryCountdown, setRetryCountdown] = useState(0);
+
   // ─── Load Pokémon ───────────────────────────────────────────────
   async function handleLoad() {
     setStatus("Carregando Pokémon da PokéAPI... isso leva ~2min.");
@@ -56,6 +60,21 @@ export default function App() {
       setStatus("Pokémon carregados! Escolha um algoritmo e clique em Start.");
     }
   }, [pokemon]); // eslint-disable-line
+
+  // ─── Rate Limit Countdown ───────────────────────────────────────
+  useEffect(() => {
+    if (retryCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setRetryCountdown((prev) => {
+        if (prev <= 1) {
+          setRateLimitError(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [retryCountdown]);
 
   // ─── Quantity ───────────────────────────────────────────────────
   function handleQuantity(e) {
@@ -95,8 +114,17 @@ export default function App() {
       setStatus(`Executando ${result.complexity.name}... ${result.total_steps.toLocaleString()} steps`);
       sorter.start();
     } catch (e) {
-      setStatus(`Erro: ${e.message}`);
       setLoadingSort(false);
+      
+      // Tratamento específico para rate-limit
+      if (e instanceof RateLimitError) {
+        const waitTime = e.retryAfter || 60;
+        setRateLimitError(e.message);
+        setRetryCountdown(waitTime);
+        setStatus(`⏳ ${e.message} Aguarde ${waitTime}s...`);
+      } else {
+        setStatus(`Erro: ${e.message}`);
+      }
     }
   }
 
@@ -282,6 +310,32 @@ export default function App() {
             {status}
           </div>
 
+          {/* Rate Limit Alert */}
+          {rateLimitError && (
+            <div style={{ 
+              background: "linear-gradient(135deg, #e94560 0%, #c1121f 100%)",
+              border: "2px solid #ff6b6b",
+              borderRadius: 8,
+              padding: "12px 14px",
+              marginBottom: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              fontSize: 12,
+              fontWeight: 600,
+              color: "white",
+              boxShadow: "0 0 15px rgba(233, 69, 96, 0.4)"
+            }}>
+              <span style={{ fontSize: 20 }}>⏳</span>
+              <div style={{ flex: 1 }}>
+                <div>{rateLimitError}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 4 }}>
+                  Tente novamente em: <strong style={{ color: "#fbbf24", fontSize: 13 }}>{retryCountdown}s</strong>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Progress */}
           <div style={{ marginBottom: 10 }}>
             <ProgressBar value={sorter.progress} max={100} color="linear-gradient(90deg,#e94560,#f5c518)" />
@@ -304,10 +358,11 @@ export default function App() {
               ? <BarChart  array={sorter.array} highlights={sorter.highlights} sorted={sorter.sorted} sortBy={sortBy} />
               : view === "cards"
                 ? <CardGrid  array={sorter.array} highlights={sorter.highlights} sorted={sorter.sorted} sortBy={sortBy} />
-                : <DetailsPoke poke={sorter.array[0]} />
+                : view === "details"
+                  ? <DetailsPoke poke={sorter.array[0]} />
+                  : null
             }
           
-
         </main>
       </div>
 

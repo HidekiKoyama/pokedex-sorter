@@ -28,7 +28,7 @@ FLASK_DEBUG = os.getenv("FLASK_DEBUG", "true").lower() == "true"
 POKEAPI_BASE = os.getenv("POKEAPI_BASE", "https://pokeapi.co/api/v2/pokemon")
 POKEAPI_TIMEOUT = int(os.getenv("POKEAPI_TIMEOUT", 10))
 POKEAPI_TOTAL = 151
-POKEAPI_THROTTLE = 0.02  # seconds between requests
+POKEAPI_THROTTLE = 0.05  # seconds between requests
 
 # ─── API Limits ───────────────────────────────────────────────────────
-RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", 60))
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", 100))

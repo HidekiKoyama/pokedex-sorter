@@ -146,8 +146,9 @@ def _load_all_pokemon():
         },
     )
 
-def detail_pokemon(identifier):
-    try:
+def detail_pokemon(identifier: int | str) -> dict | None:
+    
+    try: 
         res = requests.get(f"{POKEAPI_BASE}/{identifier}", timeout=POKEAPI_TIMEOUT)
         res.raise_for_status()
         data = res.json()
