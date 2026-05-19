@@ -79,11 +79,11 @@ export async function runSort(algorithm, array, sortBy = "id") {
   return handleResponse(res, `sort/${algorithm}`);
 }
 
-export async function compareAlgorithms(array) {
+export async function compareAlgorithms(array, sortBy = "id") {
   const res = await fetch(`${BASE}/sort/compare`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ array }),
+    body: JSON.stringify({ array, sort_by: sortBy }),
   });
   return handleResponse(res, "sort/compare");
 }

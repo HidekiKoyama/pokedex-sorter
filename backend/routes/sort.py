@@ -159,12 +159,16 @@ def compare_algorithms():
     Run ALL algorithms on the SAME shuffled array and return stats for comparison.
 
     Body (JSON, optional):
-      { "array": [...] }
+      { "array": [...], "sort_by": "id" | "name" | ... }
     """
     req_id = _get_request_id()
 
     body = request.get_json(silent=True) or {}
     arr = body.get("array")
+    sort_by = body.get("sort_by", "id")
+
+    if sort_by not in VALID_SORT_KEYS:
+        sort_by = "id"
 
     if arr is None:
         if not is_ready():
@@ -180,12 +184,15 @@ def compare_algorithms():
     if not isinstance(arr, list) or len(arr) == 0:
         return jsonify({"error": "'array' must be a non-empty list."}), 400
 
+    # Sempre embaralha para garantir comparação justa (evitar best-case em array já ordenado)
+    random.shuffle(arr)
+
     results = {}
     pre_cpu, pre_mem = _get_process_metrics()
     t_start = time.perf_counter()
 
     for name in ALGORITHMS:
-        r = run_algorithm(name, list(arr))  # copy so each algo gets same input
+        r = run_algorithm(name, list(arr), sort_key=sort_by)  # copy so each algo gets same input
         results[name] = {
             "complexity":  r["complexity"],
             "stats":       r["stats"],

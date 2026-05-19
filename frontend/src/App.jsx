@@ -386,7 +386,7 @@ export default function App() {
         </main>
       </div>
 
-      {showCompare && <CompareModal pokemon={pokemon} onClose={() => setShowCompare(false)} />}
+      {showCompare && <CompareModal pokemon={pokemon} sortBy={sortBy} onClose={() => setShowCompare(false)} />}
     </div>
   );
 }
