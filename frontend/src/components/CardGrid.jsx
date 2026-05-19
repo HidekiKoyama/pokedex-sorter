@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import DetailsPoke from "./DetailsPoke";
 // import { useNavigate } from "react-router-dom";
 
 const TYPE_COLORS = {
@@ -76,36 +77,49 @@ function SortInfo({ p, sortBy }) {
 
 export default function CardGrid({ array, highlights, sorted, sortBy = "id" }) {
   // const navigate = useNavigate();
+  const [selectedPoke, setSelectedPoke] = useState(null);
 
   return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
-      gap: "4px",
-      maxHeight: "60vh",
-      overflowY: "auto",
-    }}>
-      {array.map((p, i) => {
-        const state = getClass(i, highlights, sorted);
-        const style = STATE_STYLES[state];
-        return (
-          <div key={i} style={{
-            borderRadius: "8px",
-            padding: "4px",
-            textAlign: "center",
-            transition: "border-color 0.12s, background 0.12s",
-            ...style,
-          }}>
-            {p.img
-              ? <img src={p.img} alt={p.name} style={{ width: 48, height: 48, imageRendering: "pixelated" }} />
-              : <div style={{ width: 48, height: 48, margin: "0 auto", background: "#334155", borderRadius: 6 }} />
-            }
-            <div style={{ fontSize: 9, color: "#94a3b8", fontWeight: 700 }}>#{String(p.id).padStart(3, "0")}</div>
-            <div style={{ fontSize: 8, color: "#e2e8f0", fontWeight: 600, textTransform: "capitalize", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-            <SortInfo p={p} sortBy={sortBy} />
-          </div>
-        );
-      })}
-    </div>
+    <>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
+        gap: "4px",
+        maxHeight: "100vh",
+        overflowY: "auto",
+      }}>
+        {array.map((p, i) => {
+          const state = getClass(i, highlights, sorted);
+          const style = STATE_STYLES[state];
+          return (
+            <div
+              key={i}
+              onClick={() => setSelectedPoke(p)}
+              style={{
+                borderRadius: "8px",
+                padding: "4px",
+                textAlign: "center",
+                transition: "border-color 0.12s, background 0.12s",
+                cursor: "pointer",
+                ...style,
+              }}
+            >
+              {p.img
+                ? <img src={p.img} alt={p.name} style={{ width: 48, height: 48, imageRendering: "pixelated" }} />
+                : <div style={{ width: 48, height: 48, margin: "0 auto", background: "#334155", borderRadius: 6 }} />
+              }
+              <div style={{ fontSize: 9, color: "#94a3b8", fontWeight: 700 }}>#{String(p.id).padStart(3, "0")}</div>
+              <div style={{ fontSize: 8, color: "#e2e8f0", fontWeight: 600, textTransform: "capitalize", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+              <SortInfo p={p} sortBy={sortBy} />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* DetailsPoke Modal - Reutilizável */}
+      {selectedPoke && (
+        <DetailsPoke poke={selectedPoke} onClose={() => setSelectedPoke(null)} />
+      )}
+    </>
   );
 }

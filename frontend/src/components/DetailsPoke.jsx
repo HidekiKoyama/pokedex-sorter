@@ -14,40 +14,26 @@ const TYPE_COLORS = {
   unknown:  "#68A090",
 };
 
-export default function DetailsPoke({ poke }) {
+export default function DetailsPoke({ poke, onClose }) {
   const [open, setOpen] = useState(true);
+
+  // Chamar onClose quando fechar, se callback foi fornecido
+  const handleClose = () => {
+    setOpen(false);
+    if (onClose) {
+      // Pequeno delay para animar o fechamento
+      setTimeout(onClose, 150);
+    }
+  };
   const [query, setQuery] = useState(poke?.id ? String(poke.id) : "");
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
 
-  useEffect(() => {
-    if (!query && poke?.id) {
-      setQuery(String(poke.id));
-    }
-  }, [poke, query]);
-
-  useEffect(() => {
-    if (cooldown <= 0) return undefined;
-
-    const timer = setInterval(() => {
-      setCooldown((current) => Math.max(current - 1, 0));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [cooldown]);
-
-  async function handleSearch(e) {
-    e.preventDefault();
-
-    const identifier = query.trim().toLowerCase();
-    if (!identifier) {
-      setError("Informe um id ou nome de Pokémon.");
-      return;
-    }
-    if (loading || cooldown > 0) return;
-
+  async function fetchPokemonDetails(identifier) {
+    if (!identifier) return;
+    
     setLoading(true);
     setError("");
     setCooldown(SEARCH_COOLDOWN_SECONDS);
@@ -63,7 +49,43 @@ export default function DetailsPoke({ poke }) {
     }
   }
 
+  // Se receber um poke por prop, preenche a query e busca automaticamente
+  useEffect(() => {
+    if (poke?.id) {
+      const idStr = String(poke.id);
+      setQuery(idStr);
+      // Ignora o cooldown se veio pela prop (ex: clicou no card)
+      fetchPokemonDetails(idStr);
+    }
+  }, [poke]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+
+    const timer = setInterval(() => {
+      setCooldown((current) => Math.max(current - 1, 0));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  async function handleSearch(e) {
+    if (e) e.preventDefault();
+
+    const identifier = query.trim().toLowerCase();
+    if (!identifier) {
+      setError("Informe um id ou nome de Pokémon.");
+      return;
+    }
+    if (loading || cooldown > 0) return;
+
+    fetchPokemonDetails(identifier);
+  }
+
   if (!open) {
+    if (onClose) {
+      return null; // Se veio do CardGrid, retorna null para limpar state
+    }
     return (
       <div style={closedStateStyle}>
         <h2 style={closedTitleStyle}>Detalhes do Pokémon</h2>
@@ -77,7 +99,7 @@ export default function DetailsPoke({ poke }) {
   const canSearch = Boolean(query.trim()) && !loading && cooldown === 0;
 
   return (
-    <div style={overlayStyle} onClick={() => setOpen(false)}>
+    <div style={overlayStyle} onClick={handleClose}>
       <div
         role="dialog"
         aria-modal="true"
@@ -90,7 +112,7 @@ export default function DetailsPoke({ poke }) {
             <div style={eyebrowStyle}>Pokédex</div>
             <h2 id="details-poke-title" style={modalTitleStyle}>Detalhes do Pokémon</h2>
           </div>
-          <button onClick={() => setOpen(false)} aria-label="Fechar" style={closeButtonStyle}>×</button>
+          <button onClick={handleClose} aria-label="Fechar" style={closeButtonStyle}>×</button>
         </div>
 
         <form onSubmit={handleSearch} style={searchFormStyle}>
