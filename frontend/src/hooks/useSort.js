@@ -154,9 +154,17 @@ export function useSort() {
   const setSpeed = useCallback((ms) => { speedRef.current = ms; }, []);
   const setSound = useCallback((on) => { soundRef.current.on = on; }, []);
 
+  // Atualiza o array diretamente (usado por operações LIFO/FIFO)
+  const updateArray = useCallback((newArray) => {
+    arrayRef.current = [...newArray];
+    setArray([...newArray]);
+    setSorted(new Set());
+    setHighlights({});
+  }, []);
+
   return {
     array, highlights, sorted, running, paused,
     stats, elapsed, progress,
-    load, start, pause, reset, setSpeed, setSound,
+    load, start, pause, reset, setSpeed, setSound, updateArray,
   };
 }

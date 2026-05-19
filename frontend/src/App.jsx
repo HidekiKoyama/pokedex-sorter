@@ -8,6 +8,7 @@ import CardGrid from "./components/CardGrid";
 import DetailsPoke from "./components/DetailsPoke";
 import StatsPanel from "./components/StatsPanel";
 import CompareModal from "./components/CompareModal";
+import StackQueueControls from "./components/StackQueueControls";
 
 const ALGO_NAMES = {
   bubble:    "🫧 Bubble Sort",
@@ -152,6 +153,13 @@ export default function App() {
     const next = !soundOn;
     setSoundOn(next);
     sorter.setSound(next);
+  }
+
+  // ─── Stack/Queue (LIFO/FIFO) ────────────────────────────────────
+  function handleStackQueue(newArray) {
+    setShuffled(newArray);
+    sorter.updateArray(newArray);
+    setQuantity(newArray.length);
   }
 
   const isReady    = pokemon.length > 0 && !loadingSort;
@@ -350,6 +358,18 @@ export default function App() {
               </div>
             ))}
           </div>
+
+          {/* Stack/Queue Controls (LIFO/FIFO) */}
+          {sorter.array.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <StackQueueControls
+                array={sorter.array}
+                allPokemon={pokemon}
+                onUpdate={handleStackQueue}
+                disabled={sorter.running}
+              />
+            </div>
+          )}
 
           {/* Visualization */}
           {sorter.array.length === 0
