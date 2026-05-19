@@ -5,12 +5,15 @@ Runs the fetch in a background thread with progress tracking.
 import requests
 import threading
 import time
+import json
+import os
 
 from config import POKEAPI_BASE, POKEAPI_TIMEOUT, POKEAPI_TOTAL, POKEAPI_THROTTLE
 from logger import get_logger
 
 logger = get_logger("pokemon")
 
+_caminho_json = "data.json"
 _cache: list[dict] = []
 _cache_lock = threading.Lock()
 _loading = False
@@ -105,31 +108,72 @@ def _load_all_pokemon():
     t_start = time.perf_counter()
     result = []
 
-    for i in range(1, POKEAPI_TOTAL + 1):
-        pokemon = _fetch_single(i)
-        result.append(pokemon)
-        _load_progress["loaded"] = i
-
-        # Log progress every 25 Pokémon
-        if i % 25 == 0 or i == POKEAPI_TOTAL:
+    dados_arquivo = True
+    
+    try:
+        with open(_caminho_json, "r") as arquivo:
+            conteudo = arquivo.read()
+            conteudo_json = json.loads(conteudo)
+            
+            if len(conteudo_json) == 0:
+                raise FileNotFoundError("Arquivo vazio")
+            
+            result.extend(conteudo_json)
+            _load_progress["loaded"] = len(result)
+            
             elapsed = time.perf_counter() - t_start
             logger.info(
-                f"Load progress: {i}/{POKEAPI_TOTAL} ({i / POKEAPI_TOTAL * 100:.0f}%) — {elapsed:.1f}s elapsed",
+                f"Load progress: {len(result)}/{POKEAPI_TOTAL} ({len(result) / POKEAPI_TOTAL * 100:.0f}%) — {elapsed:.1f}s elapsed",
                 extra={
                     "data": {
                         "event":      "pokemon_load_progress",
-                        "loaded":     i,
+                        "loaded":     len(result),
                         "total":      POKEAPI_TOTAL,
                         "elapsed_s":  round(elapsed, 1),
                     },
                 },
             )
+            dados_arquivo = False
+            print("\n\n=============================================================================\n")
+            print("Dados carregados do arquivo.")
+            print("\n\n=============================================================================\n")
+    except FileNotFoundError:
+        print("Erro: O arquivo não existe.")
+        
+    if dados_arquivo:
+        print("\n\n=============================================================================\n")
+        print("Entrei na condição de ler dadados da PokeAPI.")
+        print("\n\n=============================================================================\n")
+        for i in range(1, POKEAPI_TOTAL + 1):
+            pokemon = _fetch_single(i)
+            result.append(pokemon)
+            _load_progress["loaded"] = i
 
-        time.sleep(POKEAPI_THROTTLE)  # be kind to PokéAPI
+            # Log progress every 25 Pokémon
+            if i % 25 == 0 or i == POKEAPI_TOTAL:
+                elapsed = time.perf_counter() - t_start
+                logger.info(
+                    f"Load progress: {i}/{POKEAPI_TOTAL} ({i / POKEAPI_TOTAL * 100:.0f}%) — {elapsed:.1f}s elapsed",
+                    extra={
+                        "data": {
+                            "event":      "pokemon_load_progress",
+                            "loaded":     i,
+                            "total":      POKEAPI_TOTAL,
+                            "elapsed_s":  round(elapsed, 1),
+                        },
+                    },
+                )
+
+            time.sleep(POKEAPI_THROTTLE)  # be kind to PokéAPI
+    
+        if os.path.exists(_caminho_json):
+            with open(_caminho_json, "w") as outfile:
+                json.dump(result, outfile)
 
     with _cache_lock:
         _cache.clear()
         _cache.extend(result)
+    
 
     _load_progress["done"] = True
     _loading = False
