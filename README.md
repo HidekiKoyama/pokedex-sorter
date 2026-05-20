@@ -18,6 +18,13 @@ Este projeto demonstra na prática o funcionamento de:
 
 ---
 
+## Interface do Projeto Funcionando
+
+<div align="center">
+  <img src="/poke_sorter.gif" />
+</div>
+
+---
 ## Estrutura do Projeto
 
 ```
